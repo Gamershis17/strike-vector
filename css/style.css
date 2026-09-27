@@ -185,6 +185,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#06090c;font-family:
 .set-msg{font-size:13px;min-height:18px}
 .set-msg.ok{color:#7dff9b}
 .set-msg.err{color:#ff7d6b}
+/* graphics quality segmented control */
+.seg{display:inline-flex;border:1px solid #2b4256;border-radius:6px;overflow:hidden}
+.seg button{background:#060b10;color:#7fa0b5;border:none;padding:7px 14px;font-size:12px;letter-spacing:1px;cursor:pointer}
+.seg button+button{border-left:1px solid #2b4256}
+.seg button.on{background:#f5b301;color:#1a1405;font-weight:700}
 
 /* ============ PLAYER CARD ============ */
 #menu-card-wrap{margin-top:14px;border-top:1px solid #223543;padding-top:12px}

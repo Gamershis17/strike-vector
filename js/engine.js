@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getQuality, qualityPixelRatio, qualityAA } from './quality.js';
 
 export class Engine {
   constructor(canvas, opts = {}) {
@@ -19,8 +20,9 @@ export class Engine {
     this._fpsAcc = 0; this._fpsN = 0; this.fps = 60;
 
     if (!this.headless) {
-      this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      this._aa = qualityAA(getQuality());
+      this.renderer = new THREE.WebGLRenderer({ canvas, antialias: this._aa, powerPreference: 'high-performance' });
+      this.renderer.setPixelRatio(qualityPixelRatio(getQuality()));
       this.resize();
       window.addEventListener('resize', () => this.resize());
       this.bindInput();
@@ -28,9 +30,26 @@ export class Engine {
       this.renderer = null;
     }
   }
+  // Re-read the quality setting and apply it. Pixel ratio applies live;
+  // anti-aliasing needs a fresh renderer, so it is rebuilt when it changes.
+  // Called at match start so a settings change never interrupts a live match.
+  syncQuality() {
+    if (this.headless || !this.renderer) return;
+    const q = getQuality();
+    this.renderer.setPixelRatio(qualityPixelRatio(q));
+    const wantAA = qualityAA(q);
+    if (wantAA !== this._aa) {
+      this._aa = wantAA;
+      this.renderer.dispose();
+      this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: this._aa, powerPreference: 'high-performance' });
+      this.renderer.setPixelRatio(qualityPixelRatio(q));
+      this.resize();
+    }
+  }
   newMatchScene() {
     this.scene = new THREE.Scene();
     this.scene.add(this.camera);
+    this.syncQuality();
   }
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
@@ -60,6 +79,12 @@ export class Engine {
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.canvas;
       if (this.onLockChange) this.onLockChange(this.locked);
+    });
+    // Never show the browser/PC right-click menu over the game — right mouse
+    // is aim-down-sights. Suppress on the canvas always, and document-wide
+    // while pointer-locked (locked clicks can land off-canvas).
+    document.addEventListener('contextmenu', e => {
+      if (this.locked || e.target === this.canvas) e.preventDefault();
     });
     this.canvas.addEventListener('click', () => { if (!this.locked && this._lockWanted) this.requestLock(); });
   }

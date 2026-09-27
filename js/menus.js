@@ -8,6 +8,7 @@ import { identity, isDevUnlocked, devEmblemSVG, setPlayerName, setClanTag, tryUn
 import { gunStyle, saveGunStyle, CHARMS, STICKERS, RETICLES, RETICLE_COLORS, applyGunStyleToViewmodel } from './gunstyle.js';
 import { applyOperatorToViewmodel, operator, saveOperator, UNIFORMS, HEADGEAR, GLOVES, buildOperatorModel } from './operator.js';
 import { buildViewmodel } from './weapons.js';
+import { QUALITY_LEVELS } from './quality.js';
 import {
   buildPlayerCard, cardHTML, xpProgress, MAX_LEVEL,
   TITLES, EMBLEMS, BANNERS, bannerById, emblemById, titleById,
@@ -28,7 +29,7 @@ export function setLobbyData(d) {
 }
 
 const SET_KEY = 'sv_settings_v1';
-export let settings = { sens: 1.0, fov: 80, vol: 0.8, mus: 0.4, invertY: false, hitmarkerSound: true, botCount: 7, teamSize: 6, difficulty: 'regular' };
+export let settings = { sens: 1.0, fov: 80, vol: 0.8, mus: 0.4, invertY: false, hitmarkerSound: true, botCount: 7, teamSize: 6, difficulty: 'regular', quality: 'medium' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY) || '{}')); } catch (e) {}
 export function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch (e) {} }
 
@@ -465,6 +466,14 @@ export class Menus {
     bind('set-mus', 'mus', v => Math.round(v * 100) + '%');
     $('set-invert').addEventListener('change', e => { settings.invertY = e.target.checked; saveSettings(); });
     $('set-hitmarker-sound').addEventListener('change', e => { settings.hitmarkerSound = e.target.checked; saveSettings(); });
+    // Graphics quality: applies at the start of the next match (AA needs a fresh renderer).
+    const qbtns = document.querySelectorAll('#set-quality button');
+    const paintQ = () => qbtns.forEach(b => b.classList.toggle('on', b.dataset.q === settings.quality));
+    qbtns.forEach(b => b.addEventListener('click', () => {
+      settings.quality = b.dataset.q; saveSettings(); paintQ();
+      $('set-quality-note').textContent = 'Quality saved — applies when your next match starts.';
+    }));
+    this._paintQuality = paintQ;
   }
   // ---------------- IDENTITY (name + clan tag) ----------------
   buildIdentity() {
@@ -516,6 +525,9 @@ export class Menus {
     $('set-mus').value = settings.mus; $('set-mus-v').textContent = Math.round(settings.mus * 100) + '%';
     $('set-invert').checked = settings.invertY;
     $('set-hitmarker-sound').checked = settings.hitmarkerSound;
+    if (!QUALITY_LEVELS[settings.quality]) settings.quality = 'medium';
+    if (this._paintQuality) this._paintQuality();
+    $('set-quality-note').textContent = '';
     $('set-name').value = identity.name;
     $('set-clantag').value = identity.clanTag;
     $('set-identity-msg').textContent = '';

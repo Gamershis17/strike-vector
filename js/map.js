@@ -50,8 +50,18 @@ export function buildMap(scene) {
   const crateMat2 = new THREE.MeshStandardMaterial({ color: 0x5c6b3c, roughness: 0.85 });
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x565b63, roughness: 0.9 });
 
+  // shared box geometries (keyed by dimensions) so the map doesn't allocate
+  // a fresh GPU buffer per crate/wall — less memory, faster first render
+  const boxCache = new Map();
+  function boxGeo(sx, sy, sz) {
+    const k = sx + 'x' + sy + 'x' + sz;
+    let g = boxCache.get(k);
+    if (!g) { g = new THREE.BoxGeometry(sx, sy, sz); boxCache.set(k, g); }
+    return g;
+  }
+
   function solid(cx, cy, cz, sx, sy, sz, mat = concrete, collide = true) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+    const m = new THREE.Mesh(boxGeo(sx, sy, sz), mat);
     m.position.set(cx, cy, cz);
     world.add(m);
     if (collide) colliders.push(makeBox(cx, cy, cz, sx, sy, sz));
@@ -121,7 +131,7 @@ export function buildMap(scene) {
     const w = rand(8, 20), h = rand(15, 45);
     const a = (i / 26) * Math.PI * 2;
     const r = 120;
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), skyMat);
+    const m = new THREE.Mesh(boxGeo(w, h, w), skyMat);
     m.position.set(Math.cos(a) * r, h / 2 - 2, Math.sin(a) * r);
     world.add(m);
   }
