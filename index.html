@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STRIKE VECTOR</title>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "./js/vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="ui">
+  <!-- ============ MAIN MENU ============ -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-bg"></div>
+    <div class="menu-inner">
+      <div class="game-logo">STRIKE<span>VECTOR</span></div>
+      <div class="tagline">BOT PVE // TACTICAL COMBAT SIMULATOR</div>
+      <div class="menu-cols">
+        <div class="menu-panel">
+          <h2>DEPLOY</h2>
+          <div class="mode-cards">
+            <button class="mode-card" data-mode="tdm"><b>TEAM DEATHMATCH</b><i>6v6 vs bots · First to 75</i></button>
+            <button class="mode-card" data-mode="ffa"><b>FREE-FOR-ALL</b><i>You vs bots · First to 30</i></button>
+            <button class="mode-card" data-mode="dom"><b>DOMINATION</b><i>6v6 vs bots · Hold A B C · First to 200</i></button>
+            <button class="mode-card" data-mode="snd"><b>SEARCH &amp; DESTROY</b><i>6v6 vs bots · Plant / defuse · First to 6</i></button>
+            <button class="mode-card" data-mode="ctf"><b>CAPTURE THE FLAG</b><i>6v6 vs bots · First to 3</i></button>
+            <button class="mode-card" data-mode="kc"><b>KILL CONFIRMED</b><i>6v6 vs bots · Tags · First to 65</i></button>
+          </div>
+          <div class="menu-row">
+            <label>Team size <input id="opt-teamsize" type="number" min="2" max="6" value="6"></label>
+            <label>FFA bots <input id="opt-botcount" type="number" min="2" max="11" value="7"></label>
+            <label>Difficulty
+              <select id="opt-difficulty">
+                <option value="recruit">Recruit</option>
+                <option value="regular" selected>Regular</option>
+                <option value="veteran">Veteran</option>
+              </select>
+            </label>
+          </div>
+          <div class="hint-line">Click a mode to deploy. Click the game to lock mouse.</div>
+        </div>
+        <div class="menu-panel">
+          <h2>COMMAND</h2>
+          <button class="menu-btn" id="btn-loadout">LOADOUT <i>Create-a-Class</i></button>
+          <button class="menu-btn" id="btn-streaks">STREAKS <i>Kill / Score rewards</i></button>
+          <button class="menu-btn" id="btn-camos">CAMOS <i>Weapon skins</i></button>
+          <button class="menu-btn" id="btn-operator">OPERATOR <i>Soldier look</i></button>
+          <button class="menu-btn" id="btn-gunstyle">GUN STYLE <i>Charms · stickers · reticle</i></button>
+          <button class="menu-btn" id="btn-lobby">LOBBY BOARD <i>Leaderboards</i></button>
+          <button class="menu-btn" id="btn-settings">SETTINGS</button>
+          <div id="menu-card-wrap">
+            <div id="menu-card"></div>
+            <div class="menu-row">
+              <button class="menu-btn small" id="btn-card">EDIT CARD</button>
+              <button class="menu-btn small" id="btn-titles">TITLES + EMBLEMS</button>
+            </div>
+          </div>
+          <div class="footer-note">PVE build — bot combat only.<br>Desktop + mouse required.<br><span id="game-version" title="">v0.9.0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CLASS EDITOR ============ -->
+  <div id="screen-class" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">CREATE-A-CLASS</div>
+      <div id="class-tabs" class="tabs"></div>
+      <div class="editor-grid">
+        <div class="editor-col">
+          <h3>PRIMARY</h3><select id="ed-primary" class="wselect"></select>
+          <div class="attach-grid">
+            <label>Optic<select id="att-optic"></select></label>
+            <label>Barrel<select id="att-barrel"></select></label>
+            <label>Grip<select id="att-grip"></select></label>
+            <label>Magazine<select id="att-mag"></select></label>
+          </div>
+          <h3>SECONDARY</h3><select id="ed-secondary" class="wselect"></select>
+        </div>
+        <div class="editor-col">
+          <h3>PERKS</h3>
+          <label>Perk 1<select id="perk-1"></select></label>
+          <label>Perk 2<select id="perk-2"></select></label>
+          <label>Perk 3<select id="perk-3"></select></label>
+          <h3>EQUIPMENT</h3>
+          <label>Lethal<select id="ed-lethal"></select></label>
+          <label>Tactical<select id="ed-tactical"></select></label>
+        </div>
+        <div class="editor-col">
+          <h3>STATS</h3>
+          <div id="class-statbars" class="statbars"></div>
+          <div id="class-desc" class="class-desc"></div>
+        </div>
+      </div>
+      <div class="menu-row center">
+        <button class="menu-btn small" id="btn-class-back">BACK</button>
+        <button class="menu-btn small" id="btn-class-reset">RESET SLOT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STREAK PICKER ============ -->
+  <div id="screen-streaks" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner">
+      <div class="screen-title">STREAK LOADOUT</div>
+      <div class="streak-type">
+        <button id="streak-type-kill" class="toggle-btn">KILLSTREAKS <i>3 / 5 / 7 / 9 kills — resets on death</i></button>
+        <button id="streak-type-score" class="toggle-btn">SCORESTREAKS <i>score-based — survives death</i></button>
+      </div>
+      <div class="streak-slots">
+        <label>Slot 1<select id="streak-1"></select></label>
+        <label>Slot 2<select id="streak-2"></select></label>
+        <label>Slot 3<select id="streak-3"></select></label>
+      </div>
+      <div id="streak-list" class="streak-list"></div>
+      <div class="menu-row center"><button class="menu-btn small" id="btn-streaks-back">BACK</button></div>
+    </div>
+  </div>
+
+  <!-- ============ CAMOS ============ -->
+  <div id="screen-camos" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">WEAPON CAMOS</div>
+      <div class="menu-row"><label>Weapon <select id="camo-weapon"></select></label></div>
+      <div id="camo-grid" class="camo-grid"></div>
+      <div class="menu-row center"><button class="menu-btn small" id="btn-camos-back">BACK</button></div>
+    </div>
+  </div>
+
+  <!-- ============ OPERATOR ============ -->
+  <div id="screen-operator" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">OPERATOR</div>
+      <div class="editor-grid">
+        <div class="panel center"><canvas id="op-canvas" width="460" height="540"></canvas>
+          <div class="hint-line">Gloves appear on your first-person arms in-game.</div>
+        </div>
+        <div class="panel">
+          <h3>UNIFORM</h3><div id="op-uniforms" class="swatches"></div>
+          <h3>HEADGEAR</h3><div id="op-headgear" class="pick-list"></div>
+          <h3>GLOVES</h3><div id="op-gloves" class="swatches"></div>
+          <div class="menu-row center" style="margin-top:18px"><button class="menu-btn small" id="btn-operator-back">BACK</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ GUN STYLE ============ -->
+  <div id="screen-gunstyle" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">GUN STYLE</div>
+      <div class="editor-grid">
+        <div class="panel center"><canvas id="gs-canvas" width="520" height="380"></canvas>
+          <div class="hint-line">Charm &amp; sticker preview. Reticle shows on optic ADS.</div>
+        </div>
+        <div class="panel">
+          <h3>WEAPON CHARM</h3><div id="gs-charms" class="pick-list"></div>
+          <h3>STICKER</h3><div id="gs-stickers" class="pick-list"></div>
+          <h3>RETICLE</h3><div id="gs-reticles" class="pick-list"></div>
+          <h3>RETICLE COLOR</h3><div id="gs-retcolors" class="swatches"></div>
+          <div class="menu-row center" style="margin-top:18px"><button class="menu-btn small" id="btn-gunstyle-back">BACK</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div id="screen-settings" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner">
+      <div class="screen-title">SETTINGS</div>
+      <div class="settings-grid">
+        <label>Mouse sensitivity <input id="set-sens" type="range" min="0.3" max="3" step="0.1"><b id="set-sens-v"></b></label>
+        <label>Field of view <input id="set-fov" type="range" min="70" max="110" step="1"><b id="set-fov-v"></b></label>
+        <label>Master volume <input id="set-vol" type="range" min="0" max="1" step="0.05"><b id="set-vol-v"></b></label>
+        <label>Music volume <input id="set-mus" type="range" min="0" max="1" step="0.05"><b id="set-mus-v"></b></label>
+        <label class="check"><input id="set-invert" type="checkbox"> Invert Y</label>
+        <label class="check"><input id="set-hitmarker-sound" type="checkbox" checked> Hitmarker sound</label>
+      </div>
+      <div class="settings-grid">
+        <div class="set-section-title">IDENTITY</div>
+        <label>Display name <input id="set-name" type="text" maxlength="16" autocomplete="off"></label>
+        <label>Clan tag <input id="set-clantag" type="text" maxlength="4" autocomplete="off" placeholder="2–4 chars"><i class="set-note">Letters/numbers only. Shows as [TAG]Name.</i></label>
+        <div id="set-identity-msg" class="set-msg"></div>
+      </div>
+      <div class="menu-row center"><button class="menu-btn small" id="btn-settings-back">BACK</button></div>
+    </div>
+  </div>
+
+  <!-- Hidden dev-code entry: reachable ONLY via the secret gesture (5x version click).
+       No menu button points here; nothing in the normal UI hints it exists. -->
+  <div id="dev-modal" class="hidden">
+    <div class="dev-modal-box">
+      <div class="screen-title" style="font-size:18px">DEVELOPER ACCESS</div>
+      <input id="dev-code" type="password" maxlength="32" autocomplete="off" placeholder="Enter code">
+      <div id="dev-msg" class="set-msg"></div>
+      <div class="menu-row center">
+        <button class="menu-btn small" id="btn-dev-unlock">UNLOCK</button>
+        <button class="menu-btn small" id="btn-dev-cancel">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PAUSE ============ -->
+  <div id="screen-pause" class="screen hidden">    <div class="menu-bg dim"></div>
+    <div class="menu-inner narrow">
+      <div class="screen-title">PAUSED</div>
+      <button class="menu-btn" id="btn-resume">RESUME</button>
+      <button class="menu-btn" id="btn-restart">RESTART MATCH</button>
+      <button class="menu-btn" id="btn-quit">QUIT TO MENU</button>
+    </div>
+  </div>
+
+  <!-- ============ SCOREBOARD / END ============ -->
+  <div id="screen-scoreboard" class="screen hidden">
+    <div class="menu-bg dim"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title" id="sb-title">SCOREBOARD</div>
+      <div id="sb-winner" class="sb-winner"></div>
+      <div id="sb-table" class="sb-table"></div>
+      <div class="menu-row center">
+        <button class="menu-btn small hidden" id="btn-sb-close">CLOSE [TAB]</button>
+        <button class="menu-btn small hidden" id="btn-sb-menu">MAIN MENU</button>
+        <button class="menu-btn small hidden" id="btn-sb-again">PLAY AGAIN</button>
+        <button class="menu-btn small hidden" id="btn-sb-lobby">LOBBY BOARD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LOBBY LEADERBOARD ============ -->
+  <div id="screen-lobby" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">LOBBY LEADERBOARD</div>
+      <div id="lobby-sub" class="sb-winner"></div>
+      <div id="lobby-table" class="sb-table"></div>
+      <div class="hint-line center">CLICK A COLUMN HEADER TO SORT</div>
+      <div class="menu-row center"><button class="menu-btn small" id="btn-lobby-back">BACK</button></div>
+    </div>
+  </div>
+
+  <!-- ============ VS / DEPLOY ============ -->
+  <div id="screen-vs" class="screen hidden">
+    <div class="menu-bg dim"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title" id="vs-mode">TEAM DEATHMATCH</div>
+      <div class="vs-sub"><span id="vs-map">STRIKE ZONE · NIGHT</span></div>
+      <div class="vs-cols">
+        <div id="vs-team-a" class="vs-team"></div>
+        <div id="vs-mid">⚔</div>
+        <div id="vs-team-b" class="vs-team"></div>
+      </div>
+      <div class="menu-row center"><button class="menu-btn big" id="btn-vs-deploy">DEPLOY</button></div>
+      <div class="hint-line center">AUTO-DEPLOYING — CLICK DEPLOY TO SKIP</div>
+    </div>
+  </div>
+
+  <!-- ============ PLAYER CARD EDITOR ============ -->
+  <div id="screen-card" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">PLAYER CARD</div>
+      <div class="menu-row center"><div id="card-preview"></div></div>
+      <h3>BANNER</h3><div id="card-banners" class="banner-grid"></div>
+      <h3>EMBLEM</h3><div id="card-emblems" class="emblem-pick-grid"></div>
+      <h3>TITLE</h3><div id="card-titles" class="title-pick-grid"></div>
+      <div class="menu-row center" style="margin-top:14px"><button class="menu-btn small" id="btn-card-back">BACK</button></div>
+    </div>
+  </div>
+
+  <!-- ============ TITLES & EMBLEMS ============ -->
+  <div id="screen-titles" class="screen hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-inner wide">
+      <div class="screen-title">TITLES &amp; EMBLEMS</div>
+      <div id="titles-count" class="sb-winner"></div>
+      <h3>CAREER STATS</h3><div id="titles-stats" class="stat-pills"></div>
+      <h3>TITLES</h3><div id="titles-grid" class="title-grid"></div>
+      <h3>EMBLEMS</h3><div id="emblems-grid" class="emblem-grid"></div>
+      <div class="menu-row center" style="margin-top:14px"><button class="menu-btn small" id="btn-titles-back">BACK</button></div>
+    </div>
+  </div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div id="crosshair"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="dot"></i></div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+    <div id="dmg-vignette"></div>
+    <div id="dmg-dir"></div>
+    <div id="flash-overlay"></div>
+    <div id="hint"></div>
+    <div id="banner"></div>
+    <div id="score-top"><div id="score-alpha" class="score-team"></div><div id="score-mid"></div><div id="score-bravo" class="score-team"></div></div>
+    <div id="flags"></div>
+    <div id="killfeed"></div>
+    <canvas id="minimap" width="150" height="150"></canvas>
+    <div id="streak-bar"></div>
+    <div id="ammo-box"><div id="weapon-name"></div><div id="ammo"><span id="ammo-mag"></span><span id="ammo-res"></span></div><div id="nade-box"><span id="lethal-pip" title="Frag [G]"></span><span id="tac-pip" title="Tactical [Q]"></span></div></div>
+    <div id="health-box"><div id="health-bar"><div id="health-fill"></div></div><div id="health-num">100</div></div>
+    <!-- PHASE 2 HOOK: text chat box mounts here (bottom-left, above health-box).
+         Keep this corner clear of other HUD elements. No chat UI in phase 1. -->
+    <div id="respawn-overlay" class="hidden"><div>ELIMINATED</div><span id="respawn-timer"></span></div>
+    <div id="fps-counter"></div>
+    <div id="killcam-overlay" class="hidden">
+      <div id="killcam-label">KILLCAM</div>
+      <div id="killcam-skip">CLICK OR [ESC] TO SKIP</div>
+    </div>
+    <div id="killedby-overlay" class="hidden">
+      <div class="killedby-title">KILLED BY</div>
+      <div id="killedby-card"></div>
+      <div id="killedby-weapon"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
